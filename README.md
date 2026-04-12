@@ -12,7 +12,7 @@ Welcome to the project! Before starting your profiling, please read the followin
 
 1. 🤖 Pure AI-Generated Experimental Work
 
-This project—including but not limited to all underlying logic, frontend architecture, UI design, multi-language translations, and matching algorithms—was generated entirely by AI (Gemini) with zero manual coding intervention. It serves as an entertainment experiment demonstrating the capabilities of AI in rapid application development and complex logic construction.
+This project—including but not limited to all underlying logic, frontend architecture, UI design, multi-language translations, and matching algorithms—was generated entirely by AI with zero manual coding intervention. It serves as an entertainment experiment demonstrating the capabilities of AI in rapid application development and complex logic construction.
 
 2. 🛡️ Privacy Protection Statement
 
