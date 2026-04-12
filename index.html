@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 核心防盗链破解代码：允许网页直接加载带防盗链的图片 -->
+    <meta name="referrer" content="no-referrer">
+    
+    <title>初星学园 8D 性格测评 (MBTI 深度版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+
+        // 原生 React SVG 图标组件
+        const Icon = ({ name, size = 24, className = '', fill = 'none' }) => {
+            const svgProps = {
+                xmlns: "http://www.w3.org/2000/svg", viewBox: "0 0 24 24", fill: fill, stroke: "currentColor",
+                strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", className: className, style: { width: size, height: size }
+            };
+            switch (name) {
+                case 'star': return <svg {...svgProps}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>;
+                case 'arrow-right': return <svg {...svgProps}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>;
+                case 'chevron-left': return <svg {...svgProps}><polyline points="15 18 9 12 15 6" /></svg>;
+                case 'users': return <svg {...svgProps}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
+                case 'rotate-ccw': return <svg {...svgProps}><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg>;
+                case 'trophy': return <svg {...svgProps}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 1.1-.9 2-2 2H6" /><path d="M14 14.66V17c0 1.1.9 2 2 2h2" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>;
+                case 'medal': return <svg {...svgProps}><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15" /><path d="M11 12 5.12 2.2" /><path d="m13 12 5.88-9.8" /><path d="M8 7h8" /><circle cx="12" cy="17" r="5" /><polyline points="12 18 10.5 16.5 12 15" /></svg>;
+                case 'info': return <svg {...svgProps}><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>;
+                case 'x': return <svg {...svgProps}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+                case 'globe': return <svg {...svgProps}><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>;
+                case 'user': return <svg {...svgProps}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
+                default: return null;
+            }
+        };
+
+        // --- 多语言字典 ---
+        const T = {
+          zh: {
+            appTitle: '初星学园', appSubtitle: '8D深度性格测评',
+            appDesc: '深度融合 MBTI 认知功能与大五人格理论。寻找与你灵魂波长最契合的学园偶像。',
+            startBtn: '开始评测', profiling: 'PROFILING', bestMatch: '与你灵魂最共鸣的搭档是', matchRate: '共鸣率',
+            top3Title: 'TOP 3 共鸣雷达分析', viewAllBtn: '查看所有偶像的维度图', restartBtn: '重新测试',
+            allProfilesTitle: '全员维度对比图鉴', allProfilesSub: '按灵魂共鸣率排序', backBtn: '返回你的专属报告', you: '你',
+            readmeTitle: '关于本测试', readmeDisclaimer: '免责声明：',
+            readmeDisclaimerText: '本网页为非官方性质的粉丝自制娱乐项目，与 Bandai Namco Entertainment Inc. 及其关联公司无关。',
+            readmePrivacy: '隐私保护：', readmePrivacyText: '计算均在本地浏览器中完成。不会收集、存储或上传私人数据。',
+            readmeCopyright: '版权声明：', readmeCopyrightText: '相关角色图像素材版权归属 Bandai Namco Entertainment Inc.。',
+            readmeBtn: '我知道了', options: ['非常同意', '同意', '中立 / 看情况', '不同意', '非常不同意'],
+            dims: ['外向(E)', '直觉(N)', '理性(T)', '计划(J)', '自信(C)', '进取(M)', '共情(F)', '独特(U)']
+          },
+          en: {
+            appTitle: 'Hatsuboshi Gakuen', appSubtitle: '8D Personality Profiler',
+            appDesc: 'Deeply integrated with MBTI cognitive functions and Big Five. Find the idol whose soul resonates with yours.',
+            startBtn: 'Start Profiling', profiling: 'PROFILING', bestMatch: 'YOUR BEST SOUL RESONANCE MATCH', matchRate: 'Sync Rate',
+            top3Title: 'TOP 3 SYNC RADAR ANALYSIS', viewAllBtn: 'View All Idols Profiles', restartBtn: 'Retake Quiz',
+            allProfilesTitle: 'All Idols Sync Roster', allProfilesSub: 'Sorted by Resonance Rate', backBtn: 'Back to Your Report', you: 'You',
+            readmeTitle: 'About This Quiz', readmeDisclaimer: 'Disclaimer:',
+            readmeDisclaimerText: 'This web app is an unofficial fan-made project. Not affiliated with Bandai Namco Entertainment Inc.',
+            readmePrivacy: 'Privacy Policy:', readmePrivacyText: 'All calculations are performed locally. No data is collected.',
+            readmeCopyright: 'Copyright:', readmeCopyrightText: 'Character assets belong to Bandai Namco Entertainment Inc.',
+            readmeBtn: 'Understood', options: ['Strongly Agree', 'Agree', 'Neutral / Depends', 'Disagree', 'Strongly Disagree'],
+            dims: ['Extro(E)', 'Intui(N)', 'Think(T)', 'Judge(J)', 'Conf(C)', 'Ambit(M)', 'Empat(F)', 'Uniq(U)']
+          },
+          ja: {
+            appTitle: '初星学園', appSubtitle: '8D深層性格診断',
+            appDesc: 'MBTIの認知機能とビッグファイブを深く融合した分析モデル。あなたの魂と最も共鳴するアイドルを見つけます。',
+            startBtn: '診断スタート', profiling: 'PROFILING', bestMatch: 'あなたと最も魂が共鳴するパートナー', matchRate: 'シンクロ率',
+            top3Title: 'TOP 3 共鳴レーダー分析', viewAllBtn: '全アイドルのレーダーチャートを見る', restartBtn: 'もう一度診断する',
+            allProfilesTitle: '全アイドルシンクロ図鑑', allProfilesSub: 'シンクロ率順', backBtn: 'あなたのレポートに戻る', you: 'あなた',
+            readmeTitle: 'この診断について', readmeDisclaimer: '免責事項：',
+            readmeDisclaimerText: 'このサイトは非公式のファンメイドプロジェクトであり、株式会社バンダイナムコエンターテインメントとは関係ありません。',
+            readmePrivacy: 'プライバシー保護：', readmePrivacyText: '計算はローカルブラウザ上で行われます。個人データを収集することはありません。',
+            readmeCopyright: '著作権について：', readmeCopyrightText: '画像素材の著作権は、株式会社バンダイナムコエンターテインメントに帰属します。',
+            readmeBtn: '了承しました', options: ['強く同意', '同意', 'どちらでもない', '反対', '強く反対'],
+            dims: ['外向(E)', '直感(N)', '理性(T)', '計画(J)', '自信(C)', '向上(M)', '共感(F)', '独特(U)']
+          }
+        };
+
+        // --- 1. 角色数据与特征维度 (已注入全部图片链接) ---
+        const CHARACTERS = [
+          { id: 'sena', image: 'https://free.picui.cn/free/2026/04/12/69db898976ec7.png', 
+            name: { zh: '十王星南', en: 'Sena Juo', ja: '十王星南' }, color: 'bg-amber-500', text: 'text-amber-500', bgLight: 'bg-amber-50', border: 'border-amber-500', 
+            desc: { zh: '初星学园的学生会长。拥有压倒性的领袖魅力与实力，是个为了偶像事业可以牺牲一切的完美主义者。', en: 'The student council president. Has overwhelming charisma, a perfectionist who sacrifices everything for idols.', ja: '初星学園の生徒会長。圧倒的なカリスマ性と実力を持ち、アイドルのために全てを捧げる完璧主義者。' }, 
+            traits: { E: 7, N: 6, T: 6, J: 9, C: 9, F: -1, U: 4, M: 10 } },
+            
+          { id: 'neo', image: 'https://free.picui.cn/free/2026/04/12/69db8985c7953.png', 
+            name: { zh: '根绪亚纱里', en: 'Neo Asari', ja: '根緒亜紗里' }, color: 'bg-emerald-500', text: 'text-emerald-500', bgLight: 'bg-emerald-50', border: 'border-emerald-500', 
+            desc: { zh: '初星学园的老师。性格温柔包容，总是默默支持着制作人和偶像们，是一位充满成年人成熟魅力的可靠长辈。', en: 'A teacher at Hatsuboshi Gakuen. Gentle and accommodating, she quietly supports the producer and idols, a reliable adult figure.', ja: '初星学園の教師。優しく包容力があり、プロデューサーやアイドルたちを陰ながら支える、大人の魅力あふれる頼れる存在。' }, 
+            traits: { E: -2, N: 4, T: -1, J: 6, C: 4, F: 9, U: -3, M: 2 } },
+            
+          { id: 'saki', image: 'https://free.picui.cn/free/2026/04/12/69db8985d00d1.png', 
+            name: { zh: '花海咲季', en: 'Saki Hanami', ja: '花海咲季' }, color: 'bg-red-500', text: 'text-red-500', bgLight: 'bg-red-50', border: 'border-red-500', 
+            desc: { zh: '充满好胜心的前运动员。拥有极强的自律和极高的自信，胜负欲极强，永远向着第一名进发。', en: 'A highly competitive former athlete. Possesses extreme self-discipline and confidence, always aiming for number one.', ja: '負けず嫌いな元アスリート。極めて高い自律性と自信を持ち、常にナンバーワンを目指す。' }, 
+            traits: { E: 7, N: -4, T: 7, J: 8, C: 8, F: -2, U: 1, M: 9 } },
+            
+          { id: 'ume', image: 'https://free.picui.cn/free/2026/04/12/69db89860f691.png', 
+            name: { zh: '花海佑芽', en: 'Ume Hanami', ja: '花海佑芽' }, color: 'bg-orange-600', text: 'text-orange-600', bgLight: 'bg-orange-50', border: 'border-orange-600', 
+            desc: { zh: '咲季的妹妹，活力四射的体育系少女。单纯直率，全心全意仰慕着姐姐，行动力与热情永远满分。', en: 'Saki\'s younger sister, a highly energetic athletic girl. Straightforward, deeply admires her sister, and full of passion.', ja: '咲季の妹で、エネルギーに満ちた体育会系少女。単純で真っ直ぐ、姉を心から慕っており、行動力と情熱は常に満点。' }, 
+            traits: { E: 9, N: -6, T: -5, J: -6, C: 8, F: 7, U: 2, M: 9 } },
+            
+          { id: 'rinami', image: 'https://free.picui.cn/free/2026/04/12/69db8989658b1.png', 
+            name: { zh: '姬崎莉波', en: 'Rinami Himesaki', ja: '姫崎莉波' }, color: 'bg-rose-400', text: 'text-rose-500', bgLight: 'bg-rose-50', border: 'border-rose-400', 
+            desc: { zh: '充满母性光辉的温柔姐姐。极度温柔体贴，总是把照顾别人放在首位，共情力极高。', en: 'A mature older sister figure full of maternal glow. Extremely gentle, caring, and highly empathetic.', ja: '母性に満ちた大人びたお姉さん。非常に優しく思いやりがあり、他人の世話を最優先する共感力の高い人物。' }, 
+            traits: { E: 6, N: -2, T: -7, J: 5, C: 4, F: 10, U: -4, M: 5 } },
+            
+          { id: 'temari', image: 'https://free.picui.cn/free/2026/04/12/69db898cb8276.png', 
+            name: { zh: '月村手毬', en: 'Temari Tsukimura', ja: '月村手毬' }, color: 'bg-blue-500', text: 'text-blue-500', bgLight: 'bg-blue-50', border: 'border-blue-500', 
+            desc: { zh: '对自己和他人要求极严的傲娇。极度渴望巅峰但也容易陷入自我内耗，内心笨拙且需要陪伴。', en: 'A tsundere who is strict with herself and others. Yearns for the top but easily falls into self-doubt.', ja: '自分にも他人にも厳しいツンデレ。頂点を渇望する反面、自己嫌悪に陥りやすく、実は寂しがり屋。' }, 
+            traits: { E: -5, N: -2, T: 4, J: 7, C: -6, F: 3, U: -1, M: 8 } },
+            
+          { id: 'kotone', image: 'https://free.picui.cn/free/2026/04/12/69db89896f494.png', 
+            name: { zh: '藤田琴音', en: 'Kotone Fujita', ja: '藤田ことね' }, color: 'bg-yellow-400', text: 'text-yellow-500', bgLight: 'bg-yellow-50', border: 'border-yellow-400', 
+            desc: { zh: '现实主义的精明少女。懂得察言观色，虽然嘴上总是谈钱，但其实是个极度照顾人的大好人。', en: 'A realistic and shrewd girl. Good at reading the room, talks about money, but actually very caring.', ja: '現実主義でちゃっかり者な少女。お金の話ばかりするが、実はとても面倒見の良いお人好し。' }, 
+            traits: { E: 5, N: -3, T: 4, J: 4, C: -2, F: 6, U: 1, M: 6 } },
+            
+          { id: 'hiro', image: 'https://free.picui.cn/free/2026/04/12/69db898937149.png', 
+            name: { zh: '篠泽广', en: 'Hiro Shinozawa', ja: '篠澤広' }, color: 'bg-teal-600', text: 'text-teal-600', bgLight: 'bg-teal-50', border: 'border-teal-600', 
+            desc: { zh: '为了追求“失败”而做偶像的神秘天才。极度理性、自信且怪异，享受挑战世俗认知。', en: 'A mysterious genius who seeks "failure". Extremely rational, confident, and eccentric.', ja: '「失敗」を求めてアイドルになった天才。極めて理性的で自信に満ちた変わり者。' }, 
+            traits: { E: -7, N: 9, T: 9, J: -4, C: 7, F: -4, U: 9, M: 3 } },
+            
+          { id: 'china', image: 'https://free.picui.cn/free/2026/04/12/69db8985aef86.png', 
+            name: { zh: '仓本千奈', en: 'China Kuramoto', ja: '倉本千奈' }, color: 'bg-orange-500', text: 'text-orange-500', bgLight: 'bg-orange-50', border: 'border-orange-500', 
+            desc: { zh: '充满活力与浪漫幻想的大小姐。拥有无条件的自信、纯真的共情力与极致的乐观主义。', en: 'An energetic rich lady. Possesses unconditional confidence, pure empathy, and extreme optimism.', ja: '元気いっぱいなお嬢様。無条件の自信と純粋な共感力、そして究極の楽天主義を持つ。' }, 
+            traits: { E: 8, N: 7, T: -5, J: -4, C: 7, F: 6, U: 1, M: 4 } },
+            
+          { id: 'mao', image: 'https://free.picui.cn/free/2026/04/12/69db898cc5448.png', 
+            name: { zh: '有村麻央', en: 'Mao Arimura', ja: '有村麻央' }, color: 'bg-pink-400', text: 'text-pink-400', bgLight: 'bg-pink-50', border: 'border-pink-400', 
+            desc: { zh: '帅气可靠的努力家。极度自律且三观极正，把照顾后辈和他人看得比自己的竞争更重要。', en: 'A reliable hard worker. Highly disciplined with strong morals, values taking care of juniors.', ja: 'かっこよくて頼りになる努力家。ストイックで正義感が強く、後輩や他人の世話を優先する。' }, 
+            traits: { E: 5, N: 2, T: -2, J: 7, C: 5, F: 8, U: -3, M: 5 } },
+            
+          { id: 'lilja', image: 'https://free.picui.cn/free/2026/04/12/69db8985caf49.png', 
+            name: { zh: '葛城莉莉亚', en: 'Lilja Katsuragi', ja: '葛城リーリヤ' }, color: 'bg-slate-400', text: 'text-slate-600', bgLight: 'bg-slate-100', border: 'border-slate-400', 
+            desc: { zh: '笨拙但有着钢铁般意志的少女。做事极其努力认真，为了不拖后腿而拼尽全力。', en: 'A clumsy girl with a will of iron. Works extremely hard and earnestly not to hold others back.', ja: '不器用だが鋼の意志を持つ少女。何事にも真面目に一生懸命取り組む。' }, 
+            traits: { E: -4, N: -5, T: 2, J: 8, C: -5, F: 5, U: -2, M: 7 } },
+            
+          { id: 'sumika', image: 'https://free.picui.cn/free/2026/04/12/69db898cd42af.png', 
+            name: { zh: '紫云清夏', en: 'Sumika Shiun', ja: '紫雲清夏' }, color: 'bg-green-400', text: 'text-green-500', bgLight: 'bg-green-50', border: 'border-green-400', 
+            desc: { zh: '表面上是个轻浮、爱玩的辣妹，但骨子里非常在乎朋友，常常因为过去的失败而暗自缺乏自信。', en: 'Appears to be a frivolous gal, but deeply cares for her friends. Secretly lacks confidence.', ja: '表向きは軽薄なギャルだが、根は友達思い。過去の失敗から密かに自信を欠いている。' }, 
+            traits: { E: 7, N: 3, T: -2, J: -3, C: -5, F: 7, U: 4, M: 3 } },
+            
+          { id: 'mirei', image: 'https://free.picui.cn/free/2026/04/12/69db89895a81a.png', 
+            name: { zh: '秦谷美铃', en: 'Mirei Hataya', ja: '秦谷美鈴' }, color: 'bg-indigo-400', text: 'text-indigo-500', bgLight: 'bg-indigo-50', border: 'border-indigo-400', 
+            desc: { zh: '安静随性的慵懒系少女。心思极其细腻，敏锐察觉别人的情绪，极度佛系且与世无争。', en: 'A quiet and laid-back girl. Extremely sensitive to others\' emotions, totally pacifist.', ja: '静かでマイペースな気だるげ少女。非常に繊細で他人の感情に敏感。' }, 
+            traits: { E: -6, N: 6, T: -4, J: -1, C: -2, F: 8, U: 3, M: -7 } },
+            
+          { id: 'tsubame', image: 'https://free.picui.cn/free/2026/04/12/69db898c8924e.png', 
+            name: { zh: '雨夜燕', en: 'Tsubame Ameya', ja: '雨夜燕' }, color: 'bg-purple-600', text: 'text-purple-600', bgLight: 'bg-purple-50', border: 'border-purple-600', 
+            desc: { zh: '聪明、游刃有余且极具魅力的领袖型人物。自信且自律，能理性地掌控局面追求卓越。', en: 'A smart, composed, and charismatic leader. Rationally controls situations to pursue excellence.', ja: '賢く余裕があり、非常に魅力的なリーダータイプ。状況を理性的にコントロールして卓越を追求する。' }, 
+            traits: { E: 6, N: 5, T: 7, J: 6, C: 6, F: 3, U: 6, M: 7 } },
+        ];
+
+        // 萌娘百科 Logo 链接 (将用作右上角的水印背景装饰)
+        const MAIN_LOGO_URL = 'https://free.picui.cn/free/2026/04/12/69db8a429dcf2.png'; 
+
+        // --- 2. 40道情景测试题 ---
+        const QUESTIONS = [
+          { dim: 'E', sign: 1, text: { zh: "在拥挤的聚会或活动现场，哪怕没有熟人，你也能很自然地主动向陌生人搭话。", en: "At a crowded party, even without acquaintances, you naturally strike up conversations.", ja: "混雑したパーティーで、知り合いがいなくても自然と見知らぬ人に話しかけられる。" } },
+          { dim: 'E', sign: -1, text: { zh: "结束了一周的高强度工作/学习后，你更倾向于独自在家静静恢复，如果被叫出去会觉得很累。", en: "After a busy week, you prefer to recover quietly at home alone; going out feels exhausting.", ja: "忙しい1週間を終えた後、家で一人静かに回復したい。外に誘われると疲れる。" } },
+          { dim: 'E', sign: -1, text: { zh: "在团队的破冰游戏或团建中，你通常是被动参与的那一个，很少主动带头活跃气氛。", en: "In team icebreakers, you are usually a passive participant and rarely take the lead.", ja: "チームのアイスブレイクでは通常受け身で参加し、自ら場を盛り上げることは少ない。" } },
+          { dim: 'E', sign: 1, text: { zh: "你的兴趣爱好大多需要和他人一起进行（如团队运动、密室逃脱），而不是独自完成。", en: "Most of your hobbies require others to participate rather than being solitary activities.", ja: "趣味の多くは、一人で行うものではなく、他人と一緒に楽しむものである。" } },
+          { dim: 'E', sign: 1, text: { zh: "当你遇到开心的事情时，你的第一反应是马上在社交媒体上分享或打语音电话给朋友。", en: "When happy, your first reaction is to immediately share it on social media or call a friend.", ja: "嬉しい時、最初の反応はすぐにSNSでシェアするか、友達に電話をかけることだ。" } },
+          
+          { dim: 'N', sign: 1, text: { zh: "相比于脚踏实地关注眼前的具体细节，你更喜欢畅想未来的各种可能性和宏大概念。", en: "Compared to focusing on concrete details, you prefer imagining future possibilities and grand concepts.", ja: "目の前の具体的な詳細よりも、未来の様々な可能性や壮大なコンセプトを想像する方が好きだ。" } },
+          { dim: 'N', sign: 1, text: { zh: "学习新东西时，你喜欢先了解整体的理论框架，而不是直接上手一步步按说明书操作。", en: "When learning, you prefer grasping the overall theoretical framework before following step-by-step instructions.", ja: "新しいことを学ぶ時、手順書通りに進めるより、まず全体の理論的な枠組みを理解したい。" } },
+          { dim: 'N', sign: -1, text: { zh: "你非常注重过去的经验和传统，认为“实践出真知”，不喜欢那些虚无缥缈的空谈。", en: "You value past experience and tradition, believing in practical knowledge over abstract talk.", ja: "過去の経験や伝統を重んじ、「実践こそ真理」と考え、非現実的な空論は好まない。" } },
+          { dim: 'N', sign: 1, text: { zh: "你的脑海里经常会冒出一些天马行空、甚至有些不切实际的幻想或创意。", en: "Your mind often pops up with wild, imaginative, and sometimes impractical ideas.", ja: "頭の中に、突拍子もない、時には非現実的な空想やアイデアがよく浮かんでくる。" } },
+          { dim: 'N', sign: -1, text: { zh: "你在描述一件事情时，通常会非常精确地说明时间、地点和具体数据，而不是只讲个大概的感觉。", en: "When describing an event, you give precise details (time, place, data) rather than just a general impression.", ja: "物事を説明する時、大まかな感覚ではなく、時間、場所、具体的なデータを非常に正確に伝える。" } },
+          
+          { dim: 'T', sign: 1, text: { zh: "当朋友向你哭诉遭遇不公时，你会优先帮TA分析事件的客观对错，而不是单纯跟着一起骂。", en: "When a friend cries about injustice, you prioritize objective analysis over just complaining with them.", ja: "友人が理不尽な目に遭った時、ただ一緒に文句を言うのではなく、まず客観的な善悪を分析する。" } },
+          { dim: 'T', sign: 1, text: { zh: "在购买昂贵的商品前，你会制作详细的参数/性价比对比，而不是因为“导购推荐”就冲动下单。", en: "Before buying expensive items, you make detailed spec comparisons instead of impulse buying.", ja: "高価な商品を買う前は、スペック比較を行い、おすすめされたからと衝動買いすることはない。" } },
+          { dim: 'T', sign: -1, text: { zh: "看电影或小说时，你很容易深深代入角色的情感并为之落泪，甚至会影响你好几天的心情。", en: "Watching movies, you deeply empathize with characters, crying and letting it affect your mood.", ja: "映画や小説でキャラクターに深く感情移入して涙を流しやすく、数日間気分に影響する。" } },
+          { dim: 'T', sign: -1, text: { zh: "你相信“直觉”或“命中注定”的感觉，认为它们往往比严密的逻辑推导更能指引你做出正确选择。", en: "You believe in 'intuition' or 'destiny', thinking they guide you better than strict logic.", ja: "「直感」や「運命」を信じ、厳密な論理よりも正しい選択に導いてくれると考える。" } },
+          { dim: 'T', sign: 1, text: { zh: "面对生活中的重大选择（如升学、跳槽），你优先考虑的是客观前景和收益，而不是当前的喜好。", en: "Facing major choices, you prioritize objective prospects and benefits over current preferences.", ja: "人生の重大な選択において、現在の好みよりも、客観的な将来性や利益を最優先する。" } },
+          
+          { dim: 'J', sign: 1, text: { zh: "即使是在假期旅行中，你也会制定详细的行程表，精确到时间点，不喜欢完全临时起意。", en: "Even on vacation, you make detailed itineraries and dislike completely spontaneous plans.", ja: "休日の旅行でも、詳細なスケジュールを立てる。完全な行き当たりばったりの行動は好まない。" } },
+          { dim: 'J', sign: -1, text: { zh: "面对截止日期在下周的重要任务，你通常会忍不住拖延，直到最后两天才靠危机感爆发完成。", en: "Facing a deadline, you usually procrastinate, relying on panic to finish in the last two days.", ja: "締め切りに対し、ついつい先延ばしにし、最後の2日間で危機感に任せて終わらせる。" } },
+          { dim: 'J', sign: 1, text: { zh: "你有着严格的个人习惯（如固定的晨练、睡前阅读），即使遇到突发情况也很少打破。", en: "You have strict personal habits and rarely break them even in unexpected situations.", ja: "厳格な個人の習慣を持っており、予期せぬ事態が起きてもそれを破ることは少ない。" } },
+          { dim: 'J', sign: 1, text: { zh: "你的书桌或电脑桌面通常整理得井井有条，找东西从来不需要花费额外的时间。", en: "Your desk or desktop is highly organized; you never waste time looking for things.", ja: "机やデスクトップは常に整理整頓されており、探し物で無駄な時間を費やすことはない。" } },
+          { dim: 'J', sign: -1, text: { zh: "你认为“当下的灵感和状态”比“死板的计划”更重要，喜欢随性而为地开展工作。", en: "You believe 'current inspiration' is more important than 'rigid plans', preferring to work spontaneously.", ja: "「型にはまった計画」よりも「その時のインスピレーション」を重視し、気の向くままに進める。" } },
+
+          { dim: 'C', sign: -1, text: { zh: "在重要的公开演讲或表现前，尽管已经准备充分，你依然会因为担心搞砸而紧张到睡不着觉。", en: "Before an important speech, despite full preparation, you lose sleep worrying about messing up.", ja: "重要な発表の前は、十分な準備をしていても「失敗したらどうしよう」と心配で眠れなくなる。" } },
+          { dim: 'C', sign: -1, text: { zh: "当别人对你的专业能力提出质疑时，你的第一反应是反思自己是不是真的错了，而不是坚定反驳。", en: "When questioned, your first reaction is to self-reflect if you're wrong, rather than firmly rebutting.", ja: "能力に疑問を投げかけられた時、反論するのではなく「自分が間違っているのでは」と反省する。" } },
+          { dim: 'C', sign: 1, text: { zh: "你相信只要是自己决定去做的事情，即使现在完全不了解，最后也一定能做得比大多数人好。", en: "You believe whatever you decide to do, you will eventually do it better than most people.", ja: "自分がやると決めたことなら、今は知識がなくても、最終的には大多数の人よりも上手くやれると信じる。" } },
+          { dim: 'C', sign: -1, text: { zh: "看到同龄人取得了惊人的成就，你经常会感到一种“我永远也达不到那种高度”的无力感。", en: "Seeing peers achieve amazing things, you often feel a sense of powerlessness.", ja: "同世代の人が驚くべき成果を上げたのを見ると、「自分は一生そのレベルに達せない」と無力感を感じる。" } },
+          { dim: 'C', sign: 1, text: { zh: "在会议上，即使你的观点与所有领导和权威前辈都不一样，你也会毫不犹豫地大声表达出来。", en: "In a meeting, even if your view contradicts authorities, you will speak it out without hesitation.", ja: "会議で、自分の意見が上司全員と違っていても、ためらわずに堂々と発言できる。" } },
+          
+          { dim: 'F', sign: 1, text: { zh: "在小组合作中如果有人拖了后腿，你会优先考虑TA是否遇到了困难并提供帮助，而不是立刻举报。", en: "If someone lags in group work, you prioritize considering if they have difficulties and offer help.", ja: "グループ作業で誰かが足を引っ張った場合、すぐに告発せず、困難に直面していると考え助けようとする。" } },
+          { dim: 'F', sign: 1, text: { zh: "你很难拒绝别人的请求，有时候甚至会为了帮别人而委屈自己，牺牲掉重要的私人休息时间。", en: "It's hard to refuse requests; sometimes you compromise yourself to help others.", ja: "頼み事を断るのが苦手で、他人のために自分を犠牲にし、休息時間を削ってしまう。" } },
+          { dim: 'F', sign: -1, text: { zh: "在竞技类游戏中，你认为“赢”是唯一的目的，为了胜利可以使用任何规则允许的手段。", en: "In competitive games, 'winning' is the sole purpose, using any means allowed by rules.", ja: "競技系ゲームにおいて「勝つ」ことが唯一の目的であり、ルールで許されるあらゆる手段を使う。" } },
+          { dim: 'F', sign: 1, text: { zh: "看到新闻里陌生人的不幸遭遇，你会感到强烈的共鸣，甚至会因此感到一阵真实的揪心和难过。", en: "Seeing strangers' misfortunes on the news, you feel strong empathy and real sadness.", ja: "ニュースで見知らぬ人の不幸を見ると、強く感情移入し、胸が締め付けられるように悲しくなる。" } },
+          { dim: 'F', sign: 1, text: { zh: "你认为在团队里，保持良好的人际关系和温暖的氛围，比个人的突出成绩更重要。", en: "You believe maintaining a warm atmosphere in a team is more important than individual results.", ja: "チームにおいては、個人の突出した成績よりも、温かい雰囲気を維持することの方が重要だと考える。" } },
+          
+          { dim: 'U', sign: 1, text: { zh: "对于大家都觉得理所当然的常识或死规矩，你总是忍不住在心里质疑“为什么一定要这样”。", en: "For common sense or rigid rules, you can't help but question 'Why must it be this way?'.", ja: "誰もが当然と思っている常識やルールに対して、「なぜそうしなければならないのか」と疑問に思う。" } },
+          { dim: 'U', sign: 1, text: { zh: "在穿着打扮或兴趣爱好上，如果发现自己和大多数人一样，你会感到有些无趣甚至想要改变。", en: "In fashion or hobbies, if you find yourself the same as most people, you want to change.", ja: "服装や趣味において、自分が多数派と同じだと気づくと、少しつまらなく感じてわざと変えたくなる。" } },
+          { dim: 'U', sign: 1, text: { zh: "你非常排斥那种“朝九晚五、一眼望到头”的稳定生活，更渴望充满未知和变数的未来。", en: "You reject a predictable life, yearning more for a future full of unknowns and variables.", ja: "「先の見えた」安定した生活を非常に嫌い、未知で変化に富んだ未来を強く渇望している。" } },
+          { dim: 'U', sign: 1, text: { zh: "面对前人已经总结好的完美经验，你依然喜欢自己去尝试寻找一条全新的、哪怕更绕远的路径。", en: "Faced with perfect experience, you still like to try finding a brand new path, even if it's a detour.", ja: "完璧な経験法則があっても、あえて自分自身で全く新しい、遠回りになるかもしれない道を試したくなる。" } },
+          { dim: 'U', sign: -1, text: { zh: "你认为遵从社会的传统期望（如按部就班地升学、找稳定工作）是最稳妥、值得追求的人生路径。", en: "You believe conforming to society's traditional expectations is the safest life path.", ja: "社会の伝統的な期待（順調に進学し、安定した仕事に就くなど）に従うことが、追求すべきルートだと考える。" } },
+          
+          { dim: 'M', sign: 1, text: { zh: "只要参加比赛或考核，哪怕只是个不重要的友谊赛，你也发自内心地渴望拿到第一名。", en: "Whenever you join a contest, you genuinely desire to win first place.", ja: "試合に参加するなら、たとえ重要でない試合でも、心の底から1位になりたいと望む。" } },
+          { dim: 'M', sign: -1, text: { zh: "你对“出人头地”或“成为焦点”没有太大兴趣，觉得只要过好自己平凡安稳的日常就足够了。", en: "You have little interest in 'standing out', feeling that a plain, peaceful daily life is enough.", ja: "「出世する」ことにあまり興味がなく、平凡で穏やかな日常を送れれば十分だと思っている。" } },
+          { dim: 'M', sign: 1, text: { zh: "看到同伴或对手取得成就，会激发你强烈的竞争意识，在心里暗暗发誓一定要超越他们。", en: "Seeing rivals achieve success triggers your strong competitive spirit to surpass them.", ja: "ライバルが成果を上げるのを見ると、強い競争心が刺激され「絶対に超えてやる」と誓う。" } },
+          { dim: 'M', sign: -1, text: { zh: "在职业或学业上，你抱着“及格线/过得去就行”的心态，不愿意为了顶尖的名次去拼命内卷。", en: "In studies/career, you hold a 'passing is fine' mindset, unwilling to burn out for top ranks.", ja: "「赤点回避/そこそこでいい」という考えを持っており、トップの成績のために身を削る気はない。" } },
+          { dim: 'M', sign: 1, text: { zh: "你总是习惯为自己设定一些明显高出当前能力边界的挑战目标，以此来逼迫自己成长。", en: "You set challenge goals clearly beyond your current capability to force yourself to grow.", ja: "自分の現在の能力の限界を超える挑戦的な目標を設定し、それによって自分を成長させる。" } }
+        ];
+
+        const OPTION_VALUES = [2, 1, 0, -1, -2];
+
+        // --- Avatar Component (加入了图片加载容错) ---
+        const Avatar = ({ char, lang, isLarge = false }) => {
+            const hasImage = char.image && char.image.trim() !== '';
+            
+            return (
+                <div className="relative w-full h-full flex flex-col items-center justify-center text-center p-2 text-slate-400 bg-slate-50">
+                    {hasImage && (
+                        <img 
+                            src={char.image} 
+                            alt={char.name[lang]} 
+                            className="absolute inset-0 w-full h-full object-cover z-10" 
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                    )}
+                    <div className="z-0 flex flex-col items-center justify-center w-full h-full">
+                        <Icon name="user" size={isLarge ? 32 : 16} className={`${char.text} opacity-50 mb-1`} />
+                        <span className={isLarge ? "text-xs font-medium" : "text-[8px] leading-tight font-bold"}>
+                            {char.name[lang]}
+                        </span>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- 雷达图组件 ---
+        const RadarChart = ({ userTraits, charTraits, charColorClass, size = 280, lang }) => {
+          const center = size / 2;
+          const radius = (size / 2) * 0.65; 
+          const dims = ['E', 'N', 'T', 'J', 'C', 'M', 'F', 'U']; 
+          const labels = T[lang].dims;
+          
+          const getPoint = (value, index, total) => {
+            const scaledValue = ((value + 10) / 20) * radius;
+            const angle = (Math.PI * 2 * index) / total - Math.PI / 2;
+            return {
+              x: center + scaledValue * Math.cos(angle),
+              y: center + scaledValue * Math.sin(angle)
+            };
+          };
+
+          const getPointsString = (traitsObj) => {
+            return dims.map((dim, i) => {
+              const p = getPoint(traitsObj[dim], i, dims.length);
+              return `${p.x},${p.y}`;
+            }).join(' ');
+          };
+
+          const bgPolygons = [1, 0.75, 0.5, 0.25].map(scale => {
+            const pts = dims.map((_, i) => {
+              const angle = (Math.PI * 2 * i) / dims.length - Math.PI / 2;
+              const r = radius * scale;
+              return `${center + r * Math.cos(angle)},${center + r * Math.sin(angle)}`;
+            }).join(' ');
+            return <polygon key={scale} points={pts} fill="none" stroke="#e2e8f0" strokeWidth="1" />;
+          });
+
+          return (
+            <div className="relative flex justify-center items-center my-4 transition-all duration-300">
+              <svg width={size} height={size} className="overflow-visible">
+                {bgPolygons}
+                {dims.map((_, i) => {
+                  const p = getPoint(10, i, dims.length); 
+                  return <line key={`axis-${i}`} x1={center} y1={center} x2={p.x} y2={p.y} stroke="#f1f5f9" strokeWidth="1.5" />;
+                })}
+                <polygon points={getPointsString(userTraits)} fill="rgba(148, 163, 184, 0.25)" stroke="#64748b" strokeWidth="2" strokeDasharray="4 4"/>
+                <polygon points={getPointsString(charTraits)} fill="currentColor" className={`opacity-50 transition-colors duration-500 ease-in-out ${charColorClass}`} stroke="currentColor" strokeWidth="2.5" />
+                {dims.map((dim, i) => {
+                  const angle = (Math.PI * 2 * i) / dims.length - Math.PI / 2;
+                  const labelRadius = radius + (size * 0.12); 
+                  const x = center + labelRadius * Math.cos(angle);
+                  const y = center + labelRadius * Math.sin(angle);
+                  return (
+                    <text key={`label-${i}`} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className={`font-bold fill-slate-500 ${size < 240 ? 'text-[10px]' : 'text-xs'}`}>
+                      {labels[i]}
+                    </text>
+                  );
+                })}
+              </svg>
+            </div>
+          );
+        };
+
+        const RankBadge = ({ rank }) => {
+          if (rank === 1) return <div className="bg-yellow-400 text-white w-8 h-8 rounded-full flex items-center justify-center font-black shadow-md"><Icon name="trophy" size={16}/></div>;
+          if (rank === 2) return <div className="bg-slate-300 text-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-black shadow-md"><Icon name="medal" size={18}/></div>;
+          if (rank === 3) return <div className="bg-amber-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-black shadow-md"><Icon name="medal" size={18}/></div>;
+          return <div className="bg-slate-100 text-slate-500 w-8 h-8 rounded-full flex items-center justify-center font-bold">{rank}</div>;
+        };
+
+        // --- 主应用组件 ---
+        function App() {
+          const [appState, setAppState] = useState('start'); 
+          const [currentQ, setCurrentQ] = useState(0);
+          const [answers, setAnswers] = useState(Array(QUESTIONS.length).fill(null));
+          const [userTraits, setUserTraits] = useState({ E: 0, N: 0, T: 0, J: 0, C: 0, F: 0, U: 0, M: 0 });
+          const [matchList, setMatchList] = useState([]); 
+          const [showReadme, setShowReadme] = useState(false);
+          const [lang, setLang] = useState('zh');
+
+          const quizQuestions = useMemo(() => QUESTIONS, []);
+
+          const handleStart = () => {
+            setAppState('quiz');
+            setCurrentQ(0);
+            setAnswers(Array(quizQuestions.length).fill(null));
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          };
+
+          const handleAnswer = (optionValue) => {
+            const newAnswers = [...answers];
+            newAnswers[currentQ] = optionValue;
+            setAnswers(newAnswers);
+            if (currentQ < quizQuestions.length - 1) {
+              setTimeout(() => setCurrentQ(currentQ + 1), 150); 
+            } else {
+              calculateResult(newAnswers);
+            }
+          };
+
+          const handlePrev = () => {
+            if (currentQ > 0) setCurrentQ(currentQ - 1);
+          };
+
+          const calculateResult = (finalAnswers) => {
+            let rawScores = { E: 0, N: 0, T: 0, J: 0, C: 0, F: 0, U: 0, M: 0 };
+            quizQuestions.forEach((q, index) => {
+              const val = finalAnswers[index];
+              if (val !== null) rawScores[q.dim] += val * q.sign;
+            });
+            setUserTraits(rawScores);
+
+            const SIGMA = 16; 
+
+            let scores = CHARACTERS.map(char => {
+              let sumOfSquares = 0;
+              Object.keys(char.traits).forEach(dim => {
+                sumOfSquares += Math.pow(rawScores[dim] - char.traits[dim], 2);
+              });
+              const distance = Math.sqrt(sumOfSquares);
+              let matchRate = (Math.exp(- (distance * distance) / (2 * SIGMA * SIGMA)) * 100).toFixed(1);
+              return { ...char, distance, matchRate };
+            });
+            
+            scores.sort((a, b) => b.matchRate - a.matchRate);
+            setMatchList(scores);
+            setAppState('result');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          };
+
+          const toggleLang = () => {
+            if (lang === 'zh') setLang('en');
+            else if (lang === 'en') setLang('ja');
+            else setLang('zh');
+          };
+
+          const ReadmeModal = () => {
+            if (!showReadme) return null;
+            return (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden relative animate-in fade-in zoom-in duration-200">
+                  <button onClick={() => setShowReadme(false)} className="absolute top-4 right-4 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors">
+                    <Icon name="x" size={20} />
+                  </button>
+                  <div className="p-8">
+                    <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                      <div className="bg-orange-100 p-2 rounded-xl text-orange-500"><Icon name="info" size={24} /></div>
+                      <h2 className="text-xl font-bold text-slate-800">{T[lang].readmeTitle}</h2>
+                    </div>
+                    <div className="space-y-4 text-sm text-slate-600 leading-relaxed">
+                      <p><strong className="text-slate-800">{T[lang].readmeDisclaimer}</strong><br/>{T[lang].readmeDisclaimerText}</p>
+                      <p><strong className="text-slate-800">{T[lang].readmePrivacy}</strong><br/>{T[lang].readmePrivacyText}</p>
+                      <p><strong className="text-slate-800">{T[lang].readmeCopyright}</strong><br/>{T[lang].readmeCopyrightText}</p>
+                    </div>
+                    <button onClick={() => setShowReadme(false)} className="w-full mt-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
+                      {T[lang].readmeBtn}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          };
+
+          const TopLeftControls = () => (
+            <div className="fixed top-4 left-4 z-40 flex flex-col md:flex-row gap-2">
+              <button onClick={() => setShowReadme(true)} className="bg-white/80 backdrop-blur-md border border-slate-200 text-slate-600 px-4 py-2 rounded-full text-sm font-bold shadow-sm hover:shadow hover:bg-white hover:text-orange-500 transition-all flex items-center gap-2">
+                <Icon name="info" size={16} /> Readme
+              </button>
+              <button onClick={toggleLang} className="bg-white/80 backdrop-blur-md border border-slate-200 text-slate-600 px-4 py-2 rounded-full text-sm font-bold shadow-sm hover:shadow hover:bg-white hover:text-orange-500 transition-all flex items-center gap-2 uppercase">
+                <Icon name="globe" size={16} /> {lang}
+              </button>
+            </div>
+          );
+
+          if (appState === 'start') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center p-4 text-slate-800 font-sans">
+                <TopLeftControls />
+                <ReadmeModal />
+                <div className="max-w-lg w-full bg-white rounded-[2.5rem] shadow-2xl p-10 text-center relative overflow-hidden border border-white/50 backdrop-blur-sm mt-12 md:mt-0">
+                  
+                  {/* 🌟 更改点：将 Logo 变成右上角的装饰水印背景 🌟 */}
+                  <div className="absolute -top-10 -right-10 md:-top-16 md:-right-16 w-48 h-48 md:w-64 md:h-64 opacity-20 rotate-12 z-0 pointer-events-none">
+                    <img src={MAIN_LOGO_URL} alt="Background Logo" className="w-full h-full object-contain" onError={(e) => e.target.style.display='none'} />
+                  </div>
+                  
+                  {/* 🌟 更改点：主视觉框恢复为闪亮的星星图标 🌟 */}
+                  <div className="flex justify-center mb-8 relative z-10 mt-8">
+                    <div className="bg-gradient-to-tr from-orange-400 to-orange-500 p-6 rounded-[1.5rem] shadow-xl text-white transform -rotate-6">
+                        <Icon name="star" size={56} fill="currentColor" />
+                    </div>
+                  </div>
+                  
+                  <h1 className="text-3xl md:text-4xl font-extrabold mb-4 text-slate-800 tracking-tight leading-tight relative z-10">
+                    {T[lang].appTitle} <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-pink-500">{T[lang].appSubtitle}</span>
+                  </h1>
+                  <p className="text-slate-500 mb-10 leading-relaxed text-sm md:text-base relative z-10">{T[lang].appDesc}</p>
+                  <button onClick={handleStart} className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 text-lg group relative z-10">
+                    {T[lang].startBtn} <Icon name="arrow-right" size={20} className="group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
+          if (appState === 'quiz') {
+            const question = quizQuestions[currentQ];
+            const progress = ((currentQ) / quizQuestions.length) * 100;
+            return (
+              <div className="min-h-screen bg-slate-50 flex flex-col items-center p-4 md:p-6 text-slate-800 font-sans selection:bg-orange-100">
+                <TopLeftControls />
+                <ReadmeModal />
+                <div className="max-w-xl w-full mt-16 md:mt-16">
+                  <div className="flex justify-between items-center mb-6 px-2">
+                    <button onClick={handlePrev} disabled={currentQ === 0} className={`p-3 rounded-full transition-colors ${currentQ === 0 ? 'text-slate-300' : 'text-slate-600 hover:bg-slate-200'}`}>
+                      <Icon name="chevron-left" size={24} />
+                    </button>
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs font-extrabold text-slate-400 tracking-[0.2em] uppercase mb-1">{T[lang].profiling}</span>
+                      <span className="text-base font-bold text-slate-700">{currentQ + 1} <span className="text-slate-400 mx-1">/</span> {quizQuestions.length}</span>
+                    </div>
+                    <div className="w-12"></div> 
+                  </div>
+                  <div className="h-2 bg-slate-200 rounded-full w-full mb-10 overflow-hidden shadow-inner">
+                    <div className="h-full bg-gradient-to-r from-orange-400 to-pink-500 transition-all duration-500 ease-out rounded-full" style={{ width: `${progress}%` }}></div>
+                  </div>
+                  <div className="bg-white rounded-[2rem] shadow-xl p-8 md:p-10 mb-8 border border-slate-100 relative">
+                    <div className="absolute top-8 left-6 text-slate-200 opacity-50">
+                       <span className="text-6xl font-serif">"</span>
+                    </div>
+                    <h2 className="text-xl md:text-2xl font-medium leading-relaxed min-h-[7rem] text-slate-700 relative z-10 flex items-center">
+                      {question.text[lang]}
+                    </h2>
+                  </div>
+                  <div className="space-y-3 md:space-y-4">
+                    {T[lang].options.map((optText, idx) => {
+                      const optValue = OPTION_VALUES[idx];
+                      const isSelected = answers[currentQ] === optValue;
+                      return (
+                        <button key={idx} onClick={() => handleAnswer(optValue)} className={`w-full py-4 md:py-5 px-6 text-center rounded-2xl font-bold transition-all duration-200 active:scale-95 text-sm md:text-base ${isSelected ? 'bg-slate-800 text-white shadow-lg ring-2 ring-slate-800 ring-offset-2' : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-sm'}`}>
+                          {optText}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (appState === 'result' && matchList.length > 0) {
+            const topChar = matchList[0];
+            const top3 = matchList.slice(0, 3);
+            return (
+              <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 py-16 md:py-20 font-sans overflow-x-hidden relative">
+                <TopLeftControls />
+                <ReadmeModal />
+                <div className="max-w-xl w-full bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 mt-8 md:mt-0">
+                  <div className={`pt-12 pb-24 px-6 text-center ${topChar.bgLight} relative border-b border-white/50`}>
+                    <p className="text-xs font-extrabold text-slate-500 uppercase tracking-widest mb-2 opacity-80">{T[lang].bestMatch}</p>
+                    <h2 className={`text-4xl md:text-5xl font-black tracking-tight ${topChar.text} mb-2`}>{topChar.name[lang]}</h2>
+                  </div>
+                  <div className="px-8 -mt-20 relative z-10 flex justify-center">
+                    <div className={`w-36 h-36 md:w-44 md:h-44 rounded-[2rem] shadow-2xl flex items-center justify-center bg-white border-4 ${topChar.border} overflow-hidden`}>
+                       <Avatar char={topChar} lang={lang} isLarge={true} />
+                    </div>
+                  </div>
+                  <div className="p-6 md:p-10 pt-6 text-center">
+                    <div className="bg-slate-50 p-5 rounded-2xl mb-10 border border-slate-100 shadow-sm text-left">
+                      <p className="text-slate-600 leading-relaxed text-sm md:text-base font-medium">{topChar.desc[lang]}</p>
+                    </div>
+                    <div className="mb-8">
+                      <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center justify-center gap-2">
+                        <Icon name="users" className="text-orange-400" size={24}/> {T[lang].top3Title}
+                      </h3>
+                      <div className="space-y-8">
+                        {top3.map((char, index) => (
+                          <div key={char.id} className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm relative overflow-hidden">
+                            <div className={`absolute top-0 left-0 w-full h-1.5 ${char.color}`}></div>
+                            <div className="flex items-center justify-between mb-4 mt-2">
+                              <div className="flex items-center gap-3">
+                                <RankBadge rank={index + 1} />
+                                <div className="text-left">
+                                  <h4 className={`text-lg font-bold ${char.text}`}>{char.name[lang]}</h4>
+                                  <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{T[lang].matchRate} {char.matchRate}%</span>
+                                </div>
+                              </div>
+                              <div className={`w-14 h-14 rounded-full overflow-hidden border-2 ${char.border}`}>
+                                 <Avatar char={char} lang={lang} />
+                              </div>
+                            </div>
+                            <div className="flex justify-center gap-4 text-[10px] text-slate-400 mb-[-10px]">
+                              <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 border border-slate-400 border-dashed bg-slate-200 opacity-50"></span> {T[lang].you}</div>
+                              <div className="flex items-center gap-1"><span className={`w-2.5 h-2.5 border ${char.border} ${char.color} opacity-50`}></span> {char.name[lang]}</div>
+                            </div>
+                            <RadarChart userTraits={userTraits} charTraits={char.traits} charColorClass={char.text} size={250} lang={lang} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <button onClick={() => { setAppState('allProfiles'); window.scrollTo(0,0); }} className="w-full py-4 bg-orange-100 hover:bg-orange-200 text-orange-600 font-bold rounded-2xl transition-colors active:scale-95 flex items-center justify-center gap-2">
+                        {T[lang].viewAllBtn} <Icon name="arrow-right" size={18} />
+                      </button>
+                      <button onClick={handleStart} className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <Icon name="rotate-ccw" size={18} /> {T[lang].restartBtn}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (appState === 'allProfiles') {
+            return (
+              <div className="min-h-screen bg-slate-100 flex flex-col items-center p-4 py-16 md:py-20 font-sans">
+                <TopLeftControls />
+                <ReadmeModal />
+                <div className="max-w-2xl w-full mt-4">
+                  <div className="flex items-center mb-6">
+                    <button onClick={() => { setAppState('result'); window.scrollTo(0,0); }} className="p-3 bg-white rounded-full shadow-sm text-slate-600 hover:bg-slate-200 transition-colors mr-4">
+                      <Icon name="chevron-left" size={24} />
+                    </button>
+                    <div>
+                      <h2 className="text-2xl font-black text-slate-800">{T[lang].allProfilesTitle}</h2>
+                      <p className="text-sm text-slate-500 font-medium">{T[lang].allProfilesSub}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {matchList.map((char, index) => (
+                      <div key={char.id} className="bg-white rounded-[2rem] p-5 shadow-sm border border-slate-200 flex flex-col relative overflow-hidden">
+                        <div className={`absolute top-0 left-0 w-full h-1.5 ${char.color}`}></div>
+                        <div className="flex items-center justify-between mb-2 mt-1">
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-300 font-black text-xl w-6 text-center">#{index + 1}</span>
+                            <div>
+                              <h4 className={`text-lg font-bold ${char.text}`}>{char.name[lang]}</h4>
+                              <span className="text-xs font-bold text-slate-500">{T[lang].matchRate} {char.matchRate}%</span>
+                            </div>
+                          </div>
+                          <div className={`w-12 h-12 rounded-full overflow-hidden border-2 ${char.border}`}>
+                             <Avatar char={char} lang={lang} />
+                          </div>
+                        </div>
+                        <div className="flex-1 flex flex-col items-center justify-center -mt-2">
+                           <RadarChart userTraits={userTraits} charTraits={char.traits} charColorClass={char.text} size={220} lang={lang} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-8 text-center">
+                     <button onClick={() => { setAppState('result'); window.scrollTo(0,0); }} className="py-4 px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-xl transition-all active:scale-95 inline-flex items-center justify-center gap-2">
+                        <Icon name="chevron-left" size={18} /> {T[lang].backBtn}
+                      </button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
